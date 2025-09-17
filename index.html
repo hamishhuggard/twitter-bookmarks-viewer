@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Randomized Tweets</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            padding-top: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 550px;
+            padding: 20px;
+        }
+
+        .tweet-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .tweet-placeholder {
+            border-radius: 12px;
+            border: 1px solid #e1e8ed;
+            padding: 15px;
+            background-color: #fff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            color: #555;
+        }
+
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .navigation-buttons button {
+            background-color: #1da1f2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 9999px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .navigation-buttons button:disabled {
+            background-color: #aab8c2;
+            cursor: not-allowed;
+        }
+
+        .navigation-buttons button:hover:not(:disabled) {
+            background-color: #0d8ddb;
+        }
+
+        #loading {
+            text-align: center;
+            font-size: 18px;
+            color: #657786;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="navigation-buttons">
+            <button id="backBtn" disabled>Back</button>
+            <button id="nextBtn" disabled>Next</button>
+        </div>
+        <div id="loading">Loading tweets...</div>
+        <div id="tweets" class="tweet-container"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const TWEET_URL = "https://docs.google.com/spreadsheets/d/1EE1AZk056VS1McPNEWnhxFu6bvK2qHr--FJD0GYMMDU/export?format=csv&gid=0&single=true&output=csv";
+            const TWEETS_PER_PAGE = 1;
+            const tweetsDiv = document.getElementById('tweets');
+            const nextBtn = document.getElementById('nextBtn');
+            const backBtn = document.getElementById('backBtn');
+            const loadingDiv = document.getElementById('loading');
+
+            let allTweets = [];
+            let currentPage = 0;
+
+            // Fisher-Yates shuffle algorithm
+            const shuffleArray = (array) => {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+            };
+
+            const renderTweets = () => {
+                const startIndex = currentPage * TWEETS_PER_PAGE;
+                const endIndex = startIndex + TWEETS_PER_PAGE;
+                const tweetsToDisplay = allTweets.slice(startIndex, endIndex);
+
+                console.log(tweetsToDisplay[0]);
+
+                tweetsDiv.innerHTML = '';
+                if (tweetsToDisplay.length === 0) {
+                    tweetsDiv.innerHTML = '<div class="tweet-placeholder">No tweets to display.</div>';
+                    return;
+                }
+
+                tweetsToDisplay.forEach(tweetHtml => {
+                    const div = document.createElement('div');
+                    div.innerHTML = tweetHtml.trim();
+                    tweetsDiv.appendChild(div);
+                });
+                
+                // Trigger the Twitter script to render the embedded tweets
+                if (window.twttr && window.twttr.widgets) {
+                    window.twttr.widgets.load(tweetsDiv);
+                }
+
+                updateButtons();
+            };
+
+            const updateButtons = () => {
+                backBtn.disabled = currentPage === 0;
+                nextBtn.disabled = (currentPage + 1) * TWEETS_PER_PAGE >= allTweets.length;
+            };
+
+            const fetchTweets = async () => {
+                try {
+                    const response = await fetch(TWEET_URL);
+                    const text = await response.text();
+                    
+                    // Simple CSV parsing. Assumes one column per line.
+                    const rows = text.split(/\r?\n/).filter(row => row.trim() !== '');
+                    //allTweets = rows.map(row => row.trim().replace('""','"'));
+                    allTweets = rows.map(row => row.trim().replace(/^"|"$/g, '').replace(/""/g,'"'));
+                    //allTweets = allTweets.map(row => row.trim().replace(/^"|"$/g, ''));
+
+                    shuffleArray(allTweets);
+                    loadingDiv.style.display = 'none';
+                    renderTweets();
+
+                } catch (error) {
+                    console.error('Error fetching tweets:', error);
+                    loadingDiv.innerText = 'Failed to load tweets. Please check the URL.';
+                }
+            };
+
+            nextBtn.addEventListener('click', () => {
+                if ((currentPage + 1) * TWEETS_PER_PAGE < allTweets.length) {
+                    currentPage++;
+                    renderTweets();
+                }
+            });
+
+            backBtn.addEventListener('click', () => {
+                if (currentPage > 0) {
+                    currentPage--;
+                    renderTweets();
+                }
+            });
+
+            // Add the Twitter widget script dynamically
+            const s = document.createElement('script');
+            s.setAttribute('src', 'https://platform.twitter.com/widgets.js');
+            s.setAttribute('async', 'true');
+            s.setAttribute('charset', 'utf-8');
+            document.head.appendChild(s);
+            
+            // Start the process
+            fetchTweets();
+        });
+    </script>
+</body>
+</html>
