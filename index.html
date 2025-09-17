@@ -113,8 +113,6 @@
                 const endIndex = startIndex + TWEETS_PER_PAGE;
                 const tweetsToDisplay = allTweets.slice(startIndex, endIndex);
 
-                console.log(tweetsToDisplay[0]);
-
                 tweetsDiv.innerHTML = '';
                 if (tweetsToDisplay.length === 0) {
                     tweetsDiv.innerHTML = '<div class="tweet-placeholder">No tweets to display.</div>';
