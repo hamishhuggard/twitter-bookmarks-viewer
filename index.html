@@ -89,6 +89,14 @@
             const backBtn = document.getElementById('backBtn');
             const loadingDiv = document.getElementById('loading');
 
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'ArrowRight') {
+                    nextBtn.click();
+                } else if (event.key === 'ArrowLeft') {
+                    backBtn.click();
+                }
+            });
+
             let allTweets = [];
             let currentPage = 0;
 
